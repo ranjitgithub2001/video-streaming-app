@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { JsonWebTokenError } from "jsonwebtoken";
+import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
 
 const userSchema=new Schema({
@@ -10,7 +10,7 @@ const userSchema=new Schema({
         lowercase: true,
         trim: true,
         index: true
-    },
+    }, 
     email:{
         type: String,
         required: true,
@@ -31,10 +31,10 @@ const userSchema=new Schema({
     coverImage:{
         type: String
     },
-    watchTime:{
+    watchTime:[{
         type: Schema.Types.ObjectId,
         ref: 'Video'
-    },
+    }],
     password:{
         type: String,
         required: [true, 'Password is Required'],
@@ -46,10 +46,17 @@ const userSchema=new Schema({
     timestamps: true
 })
 
-userSchema.pre('save', async function (next) {
-    if(!isModified(this.password)) return next()
-    this.password=await bcrypt.hash(this.password, 10)
-    next()
+userSchema.pre('save', async function(next) {
+    if(!this.isModified('password')) return next();
+        try {
+            // this.password=await bcrypt.hash(this.password, 10)
+            // next() 
+            const hashedPassword = await bcrypt.hash(this.password, 10);
+            this.password = hashedPassword;
+            next();
+        } catch (error) {
+            return next(error)
+        }
 })
 
 userSchema.methods.isPasswordCorrect= async function(password){
